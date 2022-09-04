@@ -1,7 +1,7 @@
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
@@ -9,12 +9,126 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <netdb.h>
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
 
-#define SERVER_PORT1  12345
-#define SERVER_PORT2  8080
+#define SERVER_PORT1	12345
+#define SERVER_PORT2	8080
+#define	GET_M			1
+#define	POST_M			2
+#define	DELETE_M		3
 
 #define TRUE             1
 #define FALSE            0
+
+static int		malloc_len(long nb)
+{
+	int	res;
+
+	res = 1;
+	if (nb == 0)
+		return (2);
+	if (nb < 0)
+	{
+		res++;
+		nb *= -1;
+	}
+	while (nb)
+	{
+		nb /= 10;
+		res++;
+	}
+	return (res);
+}
+
+void alloc_dest(char *dest, long nb, int len)
+{
+	if (nb == 0)
+		dest[0] = '0';
+	if (nb < 0)
+	{
+		nb *= -1;
+		dest[0] = '-';
+	}
+	while (nb)
+	{
+		dest[len] = (nb % 10) + '0';
+		nb /= 10;
+		len--;
+	}
+}
+
+void	ft_itoa_string(int n, std::string &s)
+{
+	long	nb;
+	int		m_len;
+	char	dest[16];
+
+	memset(dest, 0, sizeof(dest));
+	nb = (long)n;
+	m_len = malloc_len(nb);
+	dest[m_len - 1] = '\0';
+	alloc_dest(dest, nb, m_len - 2);
+	s.append(dest);
+}
+
+size_t	taking_method(std::string str) {
+	size_t	res = -1;
+	if (str.find("GET") == 0)
+		res = GET_M;
+	else if (str.find("POST") == 0)
+		res = POST_M;
+	else if (str.find("DELETE") == 0)
+		res = DELETE_M;
+	return (0);
+}
+
+size_t	taking_port(std::string str) {
+	std::string tmp;
+	size_t	find_host;
+	size_t	start;
+	size_t	end;
+
+	find_host = str.find("Host: ");
+	if (find_host == std::string::npos)
+		return (0);
+	start = str.find(":", find_host + 5);
+	tmp = str.substr(start);
+	end = tmp.find("\n");
+	tmp = tmp.substr(0, end);
+	tmp.erase(0, 1);
+	return (atoi(tmp.c_str()));
+}
+
+size_t	taking_route(std::string str, std::string &route) {
+
+	size_t	start	= str.find("/");
+	size_t	end		= str.find(" HTTP/1.1");
+
+	if (start == std::string::npos || end == std::string::npos)
+		return (0);
+
+	route = str.substr(start, (end - start));
+	return (1);
+}
+
+void	pars_request(std::string &str) {
+	int			method;
+	int			port;
+	std::string	route;
+
+	method = taking_method(str);		// Method
+	if (!taking_route(str, route)) {	// Route
+		perror("taking_route");
+	}
+	port = taking_port(str);			// Port
+
+	printf("Port = %d\n", port);
+	std::cout << "route = [" << route << "]\n";
+	printf("Method = %d\n", method);
+	}
 
 typedef struct	s_server {
 	int						port;
@@ -86,12 +200,35 @@ int	check_init_sock(int comp, t_server *list, int server_len) {
 	return (-1);
 }
 
-char	*page_upload = "HTTP/1.1 200 OK\nContent-type: text/html\nContent-Length: 350\n\n<!DOCTYPE><html><body><h1>Default page</h1><form method=\"post\" enctype=\"multipart/form-data\"><div><label for=\"file\">Selectionner le fichier a envoyer</label><input type=\"file\" id=\"file\" name=\"file\" multiple></div><div><button>Envoyer</button></div></form></body></html>\n";
 
-int	len_page_upload = 286;
 
 int main (int argc, char *argv[])
 {
+	std::string page_upload;
+
+	page_upload.append("HTTP/1.1 200 OK\n");
+	page_upload.append("Content-type: text/html\n");
+	page_upload.append("Content-Length: ");
+
+	std::fstream f;
+
+	f.open("home/default.html", std::ios::in);
+
+	std::string s;
+	std::string data;
+
+	while (1) {
+		//f >> c;
+		getline(f, s);
+		if (f.eof())
+			break;
+		data.append(s);
+	}
+	ft_itoa_string(data.size(), page_upload);
+	page_upload.append("\n\n");
+	page_upload.append(data);
+	f.close();
+
 	int		server_len = 3;
 	int    content_len, rc, on = 1;
 	int    listen_sd1 = -1, new_sd = -1, listen_sd2 = -1;
@@ -142,7 +279,7 @@ int main (int argc, char *argv[])
 		/***********************************************************/
 		/* Call poll() and wait 3 minutes for it to complete.      */
 		/***********************************************************/
-		printf("Waiting on poll()...\n");
+		printf("\nWaiting on poll()...\n");
 		rc = poll(fds, nfds, -1);
 
 		/***********************************************************/
@@ -257,8 +394,6 @@ int main (int argc, char *argv[])
 					/* connection.                                       */
 					/*****************************************************/
 					rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-					printf("%s\n", buffer);
-					memset(buffer, 0, sizeof(buffer));
 					if (rc < 0)
 					{
 						if (errno != EWOULDBLOCK)
@@ -270,7 +405,14 @@ int main (int argc, char *argv[])
 					}
 
 					/* Affichage des requêtes clients */
-					printf("\n%s", buffer);
+					printf("\n*******************\n");
+					printf("| Client request: |\n");
+					printf("*******************\n");
+					//printf("*******************\n%s", buffer);
+
+					std::string client;
+					client.append(buffer);
+					pars_request(client);
 
 					
 
@@ -289,14 +431,17 @@ int main (int argc, char *argv[])
 					/* Data was received                                 */
 					/*****************************************************/
 					content_len = rc;
-					char *str1 = "HTTP/1.1 200 OK\nContent-type: text/html\nContent-Length: 348\n\n";
+
 					//printf("  %d bytes received\n", content_len);
 
 					/*****************************************************/
 					/* Echo the data back to the client                  */
 					/*****************************************************/
-					rc = send(fds[i].fd, str1, strlen(str1), 0);
-					rc = send(fds[i].fd, page_upload, strlen(page_upload), 0);
+					printf("*******************\n");
+					printf("| Server respond: |\n");
+					printf("*******************\n");
+					//std::cout << page_upload << std::endl;
+					rc = send(fds[i].fd, page_upload.c_str(), page_upload.size(), 0);
 					//rc = send(fds[i].fd, buffer, content_len, 0);
 					if (rc < 0)
 					{
