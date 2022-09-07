@@ -25,6 +25,11 @@ cfg::Server::t_location			cfg::Server::getLocation(void)
 	return _location;
 }
 
+int								cfg::Server::getSocket(void)
+{
+	return _socket;
+}
+
 
 void							cfg::Server::setServerName(std::string server_name)
 {
@@ -39,4 +44,9 @@ void							cfg::Server::setListen(int listen)
 void							cfg::Server::setLocation(t_location location)
 {
 	_location = location;
+};
+
+void							cfg::Server::setSocket(int socket)
+{
+	_socket = socket;
 };

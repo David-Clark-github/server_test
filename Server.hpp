@@ -19,6 +19,7 @@ namespace cfg
 		std::string															_server_name;
 		int																	_listen;
 		t_location															_location;
+		int																	_socket;
 
 	public:
 
@@ -30,11 +31,13 @@ namespace cfg
 		std::string												getServerName(void);
 		int														getListen(void);
 		t_location												getLocation(void);
+		int														getSocket(void);
 
 		//	Setters
 		void													setServerName(std::string server_name);
 		void													setListen(int listen);
 		void													setLocation(t_location location);
+		void													setSocket(int socket);
 	};
 }
 

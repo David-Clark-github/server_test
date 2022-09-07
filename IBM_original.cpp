@@ -13,6 +13,8 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include "Server.hpp"
+#include <vector>
 
 #define SERVER_PORT1	12345
 #define SERVER_PORT2	8080
@@ -147,6 +149,27 @@ typedef struct	s_server {
 	int						opt;
 }				t_server;
 
+void	create_socket(cfg::Server &s) {
+	int	opt = 1;
+	struct sockaddr_in6 addr;
+
+	s.setSocket(socket(AF_INET6, SOCK_STREAM, getprotobyname("tcp")->p_proto));
+
+	setsockopt(s.getSocket(), SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt));
+
+	ioctl(s.getSocket(), FIONBIO, (char *)&opt);
+
+	memset(&addr, 0, sizeof(addr));
+
+	addr.sin6_family = AF_INET6;
+	memcpy(&addr.sin6_addr, &in6addr_any, sizeof(in6addr_any));
+	addr.sin6_port = htons(s.getListen());
+
+	bind(s.getSocket(), (struct sockaddr *)&addr, sizeof(addr));
+	listen(s.getSocket(), 42);
+
+}
+
 int	create_server(t_server *s, int port) {
 	s->opt = 1;
 	s->port = port;
@@ -201,10 +224,10 @@ int	create_server(t_server *s, int port) {
 
 }
 
-int	check_init_sock(int comp, t_server *list, int server_len) {
+int	check_init_sock(int comp, std::vector<cfg::Server> s, int server_len) {
 	for (int i = 0; i < server_len; i++) {
-		if (comp == list[i].init_sock)
-			return (list[i].init_sock);
+		if (comp == s[i].getSocket())
+			return (s[i].getSocket());
 	}
 	return (-1);
 }
@@ -214,6 +237,29 @@ int	check_init_sock(int comp, t_server *list, int server_len) {
 int main (int argc, char *argv[])
 {
 	std::string page_upload;
+
+	std::vector<cfg::Server>	server_list;
+	cfg::Server					s1;
+	cfg::Server					s2;
+	cfg::Server					s3;
+
+	s1.setListen(8080);
+	s2.setListen(5050);
+	s3.setListen(12345);
+
+	server_list.push_back(s1);
+	server_list.push_back(s2);
+	server_list.push_back(s3);
+
+	struct pollfd fds[server_list.size() * 10];
+	memset(fds, 0, sizeof(fds));
+
+	for (int i = 0; i < server_list.size(); i++) {
+		create_socket(server_list[i]);
+		fds[i].fd = server_list[i].getSocket();
+		fds[i].events = POLLIN;
+	}
+
 
 	page_upload.append("HTTP/1.1 200 OK\n");
 	page_upload.append("Content-type: text/html\n");
@@ -238,7 +284,7 @@ int main (int argc, char *argv[])
 	page_upload.append(data);
 	f.close();
 
-	int		server_len = 3;
+	int		server_len = server_list.size();
 	int    content_len, rc, on = 1;
 	int    listen_sd1 = -1, new_sd = -1, listen_sd2 = -1;
 	int    desc_ready, end_server = FALSE, compress_array = FALSE;
@@ -246,10 +292,10 @@ int main (int argc, char *argv[])
 	char   buffer[65535];
 	struct sockaddr_in6   addr;
 	int    timeout;
-	struct pollfd fds[200];
 
 	int    nfds = server_len, current_size = 0, i, j;
 
+/*
 	t_server	list_s[server_len];
 	memset(list_s, 0, sizeof(list_s));
 
@@ -257,20 +303,15 @@ int main (int argc, char *argv[])
 	create_server(&list_s[1], 12345);
 	create_server(&list_s[2], 5050);
 
-	/*************************************************************/
-	/* Initialize the pollfd structure                           */
-	/*************************************************************/
 	memset(fds, 0 , sizeof(fds));
 
-	/*************************************************************/
-	/* Set up the initial listening socket                        */
-	/*************************************************************/
 	fds[0].fd = list_s[0].init_sock;
 	fds[0].events = POLLIN;
 	fds[1].fd = list_s[1].init_sock;
 	fds[1].events = POLLIN;
 	fds[2].fd = list_s[2].init_sock;
 	fds[2].events = POLLIN;
+	*/
 
 	/*************************************************************/
 	/* Initialize the timeout to 3 minutes. If no                */
@@ -336,9 +377,9 @@ int main (int argc, char *argv[])
 				break;
 
 			}
-			if (check_init_sock(fds[i].fd, list_s, server_len) != -1)
+			if (check_init_sock(fds[i].fd, server_list, server_len) != -1)
 			{
-				int	ok_fd = check_init_sock(fds[i].fd, list_s, server_len);
+				int	ok_fd = check_init_sock(fds[i].fd, server_list, server_len);
 				/*******************************************************/
 				/* Listening descriptor is readable.                   */
 				/*******************************************************/
