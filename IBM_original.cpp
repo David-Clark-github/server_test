@@ -14,6 +14,8 @@
 #include <fstream>
 #include <cstdlib>
 #include "Server.hpp"
+#include "Create_socket.hpp"
+#include "ft_itoa_string.hpp"
 #include <vector>
 
 #define SERVER_PORT1	12345
@@ -31,56 +33,6 @@ typedef struct	s_request_ser {
 	std::string	route;
 }				t_request_ser;
 
-static int		malloc_len(long nb)
-{
-	int	res;
-
-	res = 1;
-	if (nb == 0)
-		return (2);
-	if (nb < 0)
-	{
-		res++;
-		nb *= -1;
-	}
-	while (nb)
-	{
-		nb /= 10;
-		res++;
-	}
-	return (res);
-}
-
-void alloc_dest(char *dest, long nb, int len)
-{
-	if (nb == 0)
-		dest[0] = '0';
-	if (nb < 0)
-	{
-		nb *= -1;
-		dest[0] = '-';
-	}
-	while (nb)
-	{
-		dest[len] = (nb % 10) + '0';
-		nb /= 10;
-		len--;
-	}
-}
-
-void	ft_itoa_string(int n, std::string &s)
-{
-	long	nb;
-	int		m_len;
-	char	dest[16];
-
-	memset(dest, 0, sizeof(dest));
-	nb = (long)n;
-	m_len = malloc_len(nb);
-	dest[m_len - 1] = '\0';
-	alloc_dest(dest, nb, m_len - 2);
-	s.append(dest);
-}
 
 size_t	taking_method(std::string str) {
 	size_t	res = -1;
@@ -139,89 +91,6 @@ void	pars_request(t_request_ser &r, std::string &raw) {
 		printf("Method = DELETE\n");
 	else
 		printf("method unknow = %d\n", r.method);
-}
-
-typedef struct	s_server {
-	int						port;
-	struct	sockaddr_in6	addr;
-	int						init_sock;
-	int						err;
-	int						opt;
-}				t_server;
-
-void	create_socket(cfg::Server &s) {
-	int	opt = 1;
-	struct sockaddr_in6 addr;
-
-	s.setSocket(socket(AF_INET6, SOCK_STREAM, getprotobyname("tcp")->p_proto));
-
-	setsockopt(s.getSocket(), SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt));
-
-	ioctl(s.getSocket(), FIONBIO, (char *)&opt);
-
-	memset(&addr, 0, sizeof(addr));
-
-	addr.sin6_family = AF_INET6;
-	memcpy(&addr.sin6_addr, &in6addr_any, sizeof(in6addr_any));
-	addr.sin6_port = htons(s.getListen());
-
-	bind(s.getSocket(), (struct sockaddr *)&addr, sizeof(addr));
-	listen(s.getSocket(), 42);
-
-}
-
-int	create_server(t_server *s, int port) {
-	s->opt = 1;
-	s->port = port;
-
-	/* socket */
-	s->init_sock = socket(AF_INET6, SOCK_STREAM, getprotobyname("tcp")->p_proto);
-	if (s->init_sock == -1) {
-		perror("socket() failed");
-		return (-1);
-	}
-
-	/* setsockopt */
-	s->err = setsockopt(s->init_sock, SOL_SOCKET, SO_REUSEADDR, (char *)&s->opt, sizeof(s->opt));
-	if (s->err == -1) {
-		perror("setsockopt() failed");
-		close(s->init_sock);
-		return (-1);
-	}
-
-	/* ioctl */
-	s->err = ioctl(s->init_sock, FIONBIO, (char *)&s->opt);
-	if (s->err == -1) {
-		perror("ioctl() failed");
-		close(s->init_sock);
-		return (-1);
-	}
-
-	/* memset addr */
-	memset(&s->addr, 0, sizeof(s->addr));
-
-	s->addr.sin6_family = AF_INET6;
-	memcpy(&s->addr.sin6_addr, &in6addr_any, sizeof(in6addr_any));
-	s->addr.sin6_port = htons(port);
-
-	/* bind */
-	s->err = bind(s->init_sock, (struct sockaddr *)&s->addr, sizeof(s->addr));
-	if (s->err == -1) {
-		perror("bind() failed");
-		close(s->init_sock);
-		return (-1);
-	}
-
-	/* listen */
-	s->err = listen(s->init_sock, 42);
-	if (s->err == -1) {
-		perror("listen() failed");
-		close(s->init_sock);
-		return (-1);
-	}
-
-	return (1);
-
 }
 
 int	check_init_sock(int comp, std::vector<cfg::Server> s, int server_len) {
@@ -295,55 +164,19 @@ int main (int argc, char *argv[])
 
 	int    nfds = server_len, current_size = 0, i, j;
 
-/*
-	t_server	list_s[server_len];
-	memset(list_s, 0, sizeof(list_s));
+	timeout = -1;
 
-	create_server(&list_s[0], 8080);
-	create_server(&list_s[1], 12345);
-	create_server(&list_s[2], 5050);
-
-	memset(fds, 0 , sizeof(fds));
-
-	fds[0].fd = list_s[0].init_sock;
-	fds[0].events = POLLIN;
-	fds[1].fd = list_s[1].init_sock;
-	fds[1].events = POLLIN;
-	fds[2].fd = list_s[2].init_sock;
-	fds[2].events = POLLIN;
-	*/
-
-	/*************************************************************/
-	/* Initialize the timeout to 3 minutes. If no                */
-	/* activity after 3 minutes this program will end.           */
-	/* timeout value is based on milliseconds.                   */
-	/*************************************************************/
-	timeout = (3 * 60 * 1000);
-
-	/*************************************************************/
-	/* Loop waiting for incoming connects or for incoming data   */
-	/* on any of the connected sockets.                          */
-	/*************************************************************/
 	do
 	{
-		/***********************************************************/
-		/* Call poll() and wait 3 minutes for it to complete.      */
-		/***********************************************************/
 		printf("\nWaiting on poll()...\n");
 		rc = poll(fds, nfds, -1);
 
-		/***********************************************************/
-		/* Check to see if the poll call failed.                   */
-		/***********************************************************/
 		if (rc < 0)
 		{
 			perror("  poll() failed");
 			break;
 		}
 
-		/***********************************************************/
-		/* Check to see if the 3 minute time out expired.          */
-		/***********************************************************/
 		if (rc == 0)
 		{
 			printf("  poll() timed out.  End program.\n");
@@ -351,25 +184,12 @@ int main (int argc, char *argv[])
 		}
 
 
-		/***********************************************************/
-		/* One or more descriptors are readable.  Need to          */
-		/* determine which ones they are.                          */
-		/***********************************************************/
 		current_size = nfds;
 		for (i = 0; i < current_size; i++)
 		{
-			/*********************************************************/
-			/* Loop through to find the descriptors that returned    */
-			/* POLLIN and determine whether it's the listening       */
-			/* or the active connection.                             */
-			/*********************************************************/
 			if(fds[i].revents == 0)
 				continue;
 
-			/*********************************************************/
-			/* If revents is not POLLIN, it's an unexpected result,  */
-			/* log and end the server.                               */
-			/*********************************************************/
 			if(fds[i].revents != POLLIN)
 			{
 				printf("  Error! revents = %d\n", fds[i].revents);
@@ -380,25 +200,11 @@ int main (int argc, char *argv[])
 			if (check_init_sock(fds[i].fd, server_list, server_len) != -1)
 			{
 				int	ok_fd = check_init_sock(fds[i].fd, server_list, server_len);
-				/*******************************************************/
-				/* Listening descriptor is readable.                   */
-				/*******************************************************/
+
 				printf("  Listening socket is readable\n");
 
-				/*******************************************************/
-				/* Accept all incoming connections that are            */
-				/* queued up on the listening socket before we         */
-				/* loop back and call poll again.                      */
-				/*******************************************************/
 				do
 				{
-					/*****************************************************/
-					/* Accept each incoming connection. If               */
-					/* accept fails with EWOULDBLOCK, then we            */
-					/* have accepted all of them. Any other              */
-					/* failure on accept will cause us to end the        */
-					/* server.                                           */
-					/*****************************************************/
 					new_sd = accept(ok_fd, NULL, NULL);
 					if (new_sd < 0)
 					{
@@ -411,38 +217,20 @@ int main (int argc, char *argv[])
 					}
 					ioctl(new_sd, FIONBIO, (char *)&on);
 
-					/*****************************************************/
-					/* Add the new incoming connection to the            */
-					/* pollfd structure                                  */
-					/*****************************************************/
 					printf("  New incoming connection - %d\n", new_sd);
 					fds[nfds].fd = new_sd;
 					fds[nfds].events = POLLIN;
 					nfds++;
 
-					/*****************************************************/
-					/* Loop back up and accept another incoming          */
-					/* connection                                        */
-					/*****************************************************/
 				} while (new_sd != -1);
 			}
 			else
 			{
 				//printf("  Descriptor %d is readable\n", fds[i].fd);
 				close_conn = FALSE;
-				/*******************************************************/
-				/* Receive all incoming data on this socket            */
-				/* before we loop back and call poll again.            */
-				/*******************************************************/
 
 				do
 				{
-					/*****************************************************/
-					/* Receive data on this connection until the         */
-					/* recv fails with EWOULDBLOCK. If any other         */
-					/* failure occurs, we will close the                 */
-					/* connection.                                       */
-					/*****************************************************/
 					rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 					if (rc < 0)
 					{
@@ -467,35 +255,24 @@ int main (int argc, char *argv[])
 
 					
 
-					/*****************************************************/
-					/* Check to see if the connection has been           */
-					/* closed by the client                              */
-					/*****************************************************/
 					if (rc == 0)
 					{
 						printf("  Connection closed\n");
 						close_conn = TRUE;
 						break;
 					}
-
-					/*****************************************************/
-					/* Data was received                                 */
-					/*****************************************************/
 					content_len = rc;
 
 					//printf("  %d bytes received\n", content_len);
-
-					/*****************************************************/
-					/* Echo the data back to the client                  */
-					/*****************************************************/
 					printf("*******************\n");
 					printf("| Server respond: |\n");
 					printf("*******************\n");
 					//std::cout << page_upload << std::endl;
-					if (r_s.route == "/")
-						rc = send(fds[i].fd, page_upload.c_str(), page_upload.size(), 0);
 					if (r_s.route == "/favicon.ico")
 						rc = send(fds[i].fd, NULL, 0, 0);
+					else {
+						rc = send(fds[i].fd, page_upload.c_str(), page_upload.size(), 0);
+					}
 					//rc = send(fds[i].fd, buffer, content_len, 0);
 					if (rc < 0)
 					{
@@ -508,12 +285,6 @@ int main (int argc, char *argv[])
 
 				} while(TRUE);
 
-				/*******************************************************/
-				/* If the close_conn flag was turned on, we need       */
-				/* to clean up this active connection. This            */
-				/* clean up process includes removing the              */
-				/* descriptor.                                         */
-				/*******************************************************/
 				if (close_conn)
 				{
 					printf("close_conn\n");
@@ -526,13 +297,6 @@ int main (int argc, char *argv[])
 			}  /* End of existing connection is readable             */
 		} /* End of loop through pollable descriptors              */
 
-		/***********************************************************/
-		/* If the compress_array flag was turned on, we need       */
-		/* to squeeze together the array and decrement the number  */
-		/* of file descriptors. We do not need to move back the    */
-		/* events and revents fields because the events will always*/
-		/* be POLLIN in this case, and revents is output.          */
-		/***********************************************************/
 		if (compress_array)
 		{
 			compress_array = FALSE;
@@ -553,9 +317,6 @@ int main (int argc, char *argv[])
 
 	} while (end_server == FALSE); /* End of serving running.    */
 
-	/*************************************************************/
-	/* Clean up all of the sockets that are open                 */
-	/*************************************************************/
 	for (i = 0; i < nfds; i++)
 	{
 		if(fds[i].fd >= 0)
