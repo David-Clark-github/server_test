@@ -33,10 +33,16 @@ int	check_init_sock(int comp, std::vector<cfg::Server> s, int server_len) {
 	return (-1);
 }
 
+void	usage(char *str) {
+	printf("Usage:\n%s [fichier de configuration]\n", str);
+	exit(EXIT_FAILURE);
+}
+
 int main (int argc, char *argv[])
 {
-	(void)argc;
-	(void)argv;
+	if (argc != 2) {
+		usage(argv[0]);
+	}
 	std::string page_upload;
 
 	std::vector<cfg::Server>	server_list;
