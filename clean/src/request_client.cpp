@@ -47,6 +47,8 @@ void	pars_request(t_request_ser &r, std::string &raw) {
 		perror("taking_route() failed");
 	}
 
+	printf("route = [%s]\n", r.route.c_str());
+
 	r.port = taking_port(raw);				// Port
 
 	// std::cout << "route = [" << r.route << "]\n";

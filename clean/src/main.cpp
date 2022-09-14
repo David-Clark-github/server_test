@@ -66,7 +66,7 @@ int main (int argc, char *argv[])
 
 	std::fstream f;
 
-	f.open("home/default.html", std::ios::in);
+	f.open("home/form.html", std::ios::in);
 
 	std::string s;
 	std::string data;
@@ -175,8 +175,8 @@ int main (int argc, char *argv[])
 					/* Affichage des requêtes clients */
 					printf("\n*******************\n");
 					printf("| Client request: |\n");
-					printf("*******************\n");
-					//printf("*******************\n%s", buffer);
+					//printf("*******************\n");
+					printf("*******************\n%s", buffer);
 
 					t_request_ser	r_s;	
 					std::string client;
@@ -236,7 +236,7 @@ int main (int argc, char *argv[])
 
 
 			}  /* End of existing connection is readable             */
-		} /* End of loop through pollable descriptors              */
+		} /* End of loop through pollable descriptors                */
 
 		if (compress_array)
 		{
