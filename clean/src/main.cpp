@@ -35,6 +35,8 @@ int	check_init_sock(int comp, std::vector<cfg::Server> s, int server_len) {
 
 int main (int argc, char *argv[])
 {
+	(void)argc;
+	(void)argv;
 	std::string page_upload;
 
 	std::vector<cfg::Server>	server_list;
@@ -53,7 +55,7 @@ int main (int argc, char *argv[])
 	struct pollfd fds[server_list.size() * 10];
 	memset(fds, 0, sizeof(fds));
 
-	for (int i = 0; i < server_list.size(); i++) {
+	for (size_t i = 0; i < server_list.size(); i++) {
 		create_socket(server_list[i]);
 		fds[i].fd = server_list[i].getSocket();
 		fds[i].events = POLLIN;
@@ -85,11 +87,10 @@ int main (int argc, char *argv[])
 
 	int		server_len = server_list.size();
 	int    content_len, rc, on = 1;
-	int    listen_sd1 = -1, new_sd = -1, listen_sd2 = -1;
-	int    desc_ready, end_server = FALSE, compress_array = FALSE;
+	int    new_sd = -1;
+	int    end_server = FALSE, compress_array = FALSE;
 	int    close_conn;
 	char   buffer[65535];
-	struct sockaddr_in6   addr;
 	int    timeout;
 
 	int    nfds = server_len, current_size = 0, i, j;

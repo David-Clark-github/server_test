@@ -6,7 +6,7 @@
 #    By: dclark <dclark@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/09/14 13:32:51 by dclark            #+#    #+#              #
-#    Updated: 2022/09/14 13:40:39 by dclark           ###   ########.fr        #
+#    Updated: 2022/09/14 15:01:55 by dclark           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -27,3 +27,27 @@ _DEPS	=	Create_socket.hpp \
 DEPS	=	$(patsubst %,$(IDIR)/%,$(_DEPS))
 
 _OBJ	=	main.o \
+			Create_socket.o \
+			ft_itoa_string.o \
+			request_client.o \
+			Server.o
+
+OBJ		=	$(patsubst %,$(ODIR)/%,$(_OBJ))
+
+$(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+all:	$(NAME)
+
+$(NAME): $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+clean:
+	rm -f $(ODIR)/*.o
+
+fclean:	clean
+	rm -f $(NAME)
+
+re: fclean $(NAME)
+
+.PHONY: all clean fclean re
