@@ -22,6 +22,8 @@ namespace cfg
 
 	public:
 
+		int																	_socket;
+
 		//	Constructor and destructor
 		Server();
 		~Server();
