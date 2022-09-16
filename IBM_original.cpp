@@ -23,6 +23,12 @@
 #define TRUE             1
 #define FALSE            0
 
+typedef struct	s_request_ser {
+	int			method;
+	int 		port;
+	std::string	route;
+}				t_request_ser;
+
 static int		malloc_len(long nb)
 {
 	int	res;
@@ -82,7 +88,7 @@ size_t	taking_method(std::string str) {
 		res = POST_M;
 	else if (str.find("DELETE") == 0)
 		res = DELETE_M;
-	return (0);
+	return (res);
 }
 
 size_t	taking_port(std::string str) {
@@ -114,21 +120,24 @@ size_t	taking_route(std::string str, std::string &route) {
 	return (1);
 }
 
-void	pars_request(std::string &str) {
-	int			method;
-	int			port;
-	std::string	route;
-
-	method = taking_method(str);		// Method
-	if (!taking_route(str, route)) {	// Route
+void	pars_request(t_request_ser &r, std::string &raw) {
+	r.method = taking_method(raw);		// Method
+	if (!taking_route(raw, r.route)) {	// Route
 		perror("taking_route");
 	}
-	port = taking_port(str);			// Port
+	r.port = taking_port(raw);			// Port
 
-	printf("Port = %d\n", port);
-	std::cout << "route = [" << route << "]\n";
-	printf("Method = %d\n", method);
-	}
+	printf("Port = %d\n", r.port);
+	std::cout << "route = [" << r.route << "]\n";
+	if (r.method == GET_M)
+		printf("Method = GET\n");
+	else if (r.method == POST_M)
+		printf("Method = POST\n");
+	else if (r.method == DELETE_M)
+		printf("Method = DELETE\n");
+	else
+		printf("method unknow = %d\n", r.method);
+}
 
 typedef struct	s_server {
 	int						port;
@@ -407,12 +416,13 @@ int main (int argc, char *argv[])
 					/* Affichage des requêtes clients */
 					printf("\n*******************\n");
 					printf("| Client request: |\n");
-					printf("*******************\n");
-					//printf("*******************\n%s", buffer);
+					//printf("*******************\n");
+					printf("*******************\n%s", buffer);
 
+					t_request_ser	r_s;	
 					std::string client;
 					client.append(buffer);
-					pars_request(client);
+					pars_request(r_s, client);
 
 					
 
@@ -441,7 +451,10 @@ int main (int argc, char *argv[])
 					printf("| Server respond: |\n");
 					printf("*******************\n");
 					//std::cout << page_upload << std::endl;
-					rc = send(fds[i].fd, page_upload.c_str(), page_upload.size(), 0);
+					if (r_s.route == "/")
+						rc = send(fds[i].fd, page_upload.c_str(), page_upload.size(), 0);
+					if (r_s.route == "/favicon.ico")
+						rc = send(fds[i].fd, NULL, 0, 0);
 					//rc = send(fds[i].fd, buffer, content_len, 0);
 					if (rc < 0)
 					{
