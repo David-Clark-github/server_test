@@ -7,7 +7,7 @@ NAME	=	cfg_file_parser
 
 OBJS	=	$(SRCS:.cpp=.o)
 
-CPPFLAGS	+= -std=c++98 -Wall -Wextra -Werror
+CPPFLAGS	+= -std=c++98 -Wall -Wextra -Werror -g
 
 CC		=	c++
 

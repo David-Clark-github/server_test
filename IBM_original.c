@@ -257,6 +257,8 @@ int main (int argc, char *argv[])
 					/* connection.                                       */
 					/*****************************************************/
 					rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+					printf("%s\n", buffer);
+					memset(buffer, 0, sizeof(buffer));
 					if (rc < 0)
 					{
 						if (errno != EWOULDBLOCK)

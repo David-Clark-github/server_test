@@ -1,86 +1,106 @@
 #include <Server.hpp>
 #include <iostream>
 #include <string>
-#include <vector>
 #include <fstream>
-#include <iterator>
 #include <algorithm>
+#include <cstring>
+#include <list>
 
-// typedef		std::string	(*getValuesOfKey)(std::vector<std::string>);
+#define	NPOS std::string::npos
 
-// const		std::map<std::string, getValuesOfKey>	parsing
-// {
-// 	std::make_pair("server", )
-// }
-
-void					matchingBrackets(std::vector<std::string> cfg)
+typedef struct					s_cfg
 {
-	int		ob = 0;
-	int		cb = 0;
+	std::string					key;
+	std::string					value;
+	s_cfg						*children;
+}								t_cfg;
 
-	for (std::vector<std::string>::iterator it = cfg.begin();
-			it != cfg.end(); it++)
+bool						findServers(std::string str, std::string key, std::vector<t_cfg> &servers)
+{
+	size_t							i = 0;
+	size_t							tmp;
+	size_t							it = 0;
+
+	for (; i < str.length(); i++)
 	{
-		for (size_t i = 0; i < it->length(); i++)
+		tmp = i;
+		for (; isspace(str[i]) && i < str.length(); i++);
+		for (size_t j = 0; i < str.length() && j < key.length(); i++, j++)
+			if (str[i] != key[j])
+				return false;
+		servers.push_back(t_cfg());
+		std::cout << servers.size() << std::endl;
+		// servers[i].key = key;
+		for (; isspace(str[i]) && i < str.length(); i++);
+		if (str[i] != '{')
+			return false;
+		if (i < str.length())
+			i++;
+		size_t size = 0;
+		for (size_t flag = 1; i < str.length() && flag != 0; i++, size++)
 		{
-			if (it->at(i) == '{')
-				ob++;
-			else if (it->at(i) == '}')
-				cb++;
+			if (str[i] == '{')
+				flag++;
+			else if (str[i] == '}')
+				flag--;
 		}
+		servers[it].value = str.substr(tmp, size);
+		it++;
 	}
-	if (ob != cb)
-		std::cerr << "Brackets are not matching !" << std::endl;
+	return true;
 }
 
-typedef	std::vector<std::pair<std::vector<std::string>::iterator, std::vector<std::string>::iterator> >	t_context;
-
-t_context		*getServerContext(std::vector<std::string> cfg)
+std::list<std::string>		*split(std::string str, std::string delimiter)
 {
-	t_context								*context = new t_context;
-	std::vector<std::string>::iterator		begin, end;
+	size_t						begin = 0;
+	size_t						end = 0;
+	std::list<std::string>		*sp = new std::list<std::string>;
+	std::string					buff;
 
-	for(std::vector<std::string>::iterator it = cfg.begin(); it != cfg.end(); it++)
+	while (end != NPOS)
 	{
-		if (it->find("server") != std::string::npos)
-		{
-			begin = it;
-			for (; it != cfg.end(); it++)
-			{
-				
-			}
-		}
+		end = str.find(delimiter, begin);
+		buff = str.substr(begin, end - begin);
+		if (buff.length() > 0)
+			sp->push_back(buff);
+		begin = end + delimiter.length();
 	}
+	return sp;
 }
 
-void					parseCfgFile(std::string cfg_file_name)
+std::string		*getFileContent(char *file_name)
 {
-	std::vector<std::string>		cfg_file_content;
-	std::ifstream					cfg_file;
-	std::string						buffer;
+	std::string					*file_content = new std::string;
+	std::string					buffer;
+	std::ifstream				file;
 
-	cfg_file.open(cfg_file_name.c_str());
-	if (cfg_file.is_open() == false)
-		throw ("Couldn't open file: " + cfg_file_name + " !");
-	while (cfg_file.eof() == false)
+	try
 	{
-		std::getline(cfg_file, buffer);
-		cfg_file_content.push_back(buffer);
+		file.open(file_name, std::ios_base::in);
+		file.exceptions(std::ifstream::failbit);
 	}
-	matchingBrackets(cfg_file_content);
-}
-
-std::vector<cfg::Server>			*getServers(std::string cfg_file_name)
-{
-	parseCfgFile(cfg_file_name);
-
-	std::vector<cfg::Server>		*servers = new std::vector<cfg::Server>;
-	return servers;
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+		return NULL;
+	}
+	while (!file.eof())
+	{
+		std::getline(file, buffer);
+		buffer.append("\n");
+		file_content->append(buffer);
+	}
+	return file_content;
 }
 
 int		main(int ac, char **av)
 {
+	(void)av;
 	if (ac != 2)
 		return 1;
-	getServers(av[1]);
+	std::string *s = getFileContent(av[1]);
+	std::vector<t_cfg> sv;
+	findServers(*s, "server", sv);
+	for (std::vector<t_cfg>::iterator it = sv.begin(); it != sv.end(); it++)
+		std::cout << it->key << std::endl;
 }
