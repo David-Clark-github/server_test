@@ -171,11 +171,11 @@ int main (int argc, char *argv[])
 					rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 					if (rc < 0)
 					{
-						if (errno != EWOULDBLOCK)
-						{
-							perror("  recv() failed");
-							close_conn = TRUE;
-						}
+					//	if (errno != EWOULDBLOCK)
+					//	{
+					//		perror("  recv() failed");
+					//		close_conn = TRUE;
+					//	}
 						break;
 					}
 
@@ -190,8 +190,6 @@ int main (int argc, char *argv[])
 					client.append(buffer);
 					pars_request(r_s, client);
 
-					
-
 					if (rc == 0)
 					{
 						printf("  Connection closed\n");
@@ -200,7 +198,6 @@ int main (int argc, char *argv[])
 					}
 					content_len = rc;
 
-					//printf("  %d bytes received\n", content_len);
 					printf("*******************\n");
 					printf("| Server respond: |\n");
 					printf("*******************\n");

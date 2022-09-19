@@ -19,7 +19,7 @@ size_t	taking_port(std::string str) {
 
 	find_host = str.find("Host: ");
 	if (find_host == std::string::npos)
-		return (0);
+		return (-1);
 	start = str.find(":", find_host + 5);
 	tmp = str.substr(start);
 	end = tmp.find("\n");
@@ -50,8 +50,9 @@ void	pars_request(t_request_ser &r, std::string &raw) {
 	printf("route = [%s]\n", r.route.c_str());
 
 	r.port = taking_port(raw);				// Port
-
-	// std::cout << "route = [" << r.route << "]\n";
+	if (r.port == -1)
+		return;
+	printf("port = %d\n", r.port);
 
 	switch (r.method) {
 		case GET_M:
