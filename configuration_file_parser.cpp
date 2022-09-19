@@ -5,50 +5,51 @@
 #include <algorithm>
 #include <cstring>
 #include <list>
+#include <stdio.h>
 
 #define	NPOS std::string::npos
 
-typedef struct					s_cfg
-{
-	std::string					key;
-	std::string					value;
-	s_cfg						*children;
-}								t_cfg;
-
-bool						findServers(std::string str, std::string key, std::vector<t_cfg> &servers)
+bool						findKeyWithBrace(std::string str, std::string key, std::list<std::string> &servers)
 {
 	size_t							i = 0;
 	size_t							tmp;
-	size_t							it = 0;
 
 	for (; i < str.length(); i++)
 	{
-		tmp = i;
-		for (; isspace(str[i]) && i < str.length(); i++);
+		for (; !isalpha(str[i]) && i < str.length();)
+		{
+			for (; isspace(str[i]) && i < str.length(); i++);
+			if (str[i] == '#')
+				for (; str[i] != '\n' && i < str.length(); i++);
+		}
 		for (size_t j = 0; i < str.length() && j < key.length(); i++, j++)
 			if (str[i] != key[j])
 				return false;
-		servers.push_back(t_cfg());
-		std::cout << servers.size() << std::endl;
-		// servers[i].key = key;
 		for (; isspace(str[i]) && i < str.length(); i++);
 		if (str[i] != '{')
 			return false;
 		if (i < str.length())
 			i++;
 		size_t size = 0;
-		for (size_t flag = 1; i < str.length() && flag != 0; i++, size++)
+		tmp = i;
+		for (size_t flag = 1; i < str.length() && flag != 0; i++)
 		{
 			if (str[i] == '{')
 				flag++;
 			else if (str[i] == '}')
 				flag--;
+			if (flag != 0)
+				size++;
 		}
-		servers[it].value = str.substr(tmp, size);
-		it++;
+		servers.push_back(str.substr(tmp, size));
 	}
-	return true;
+	return (servers.size()) ? true : false;
 }
+
+// bool						findKeyWithSemicolon(std::string str, std::string key, std::map<std::string, std::list<std::string> > &attributes)
+// {
+
+// }
 
 std::list<std::string>		*split(std::string str, std::string delimiter)
 {
@@ -99,8 +100,6 @@ int		main(int ac, char **av)
 	if (ac != 2)
 		return 1;
 	std::string *s = getFileContent(av[1]);
-	std::vector<t_cfg> sv;
-	findServers(*s, "server", sv);
-	for (std::vector<t_cfg>::iterator it = sv.begin(); it != sv.end(); it++)
-		std::cout << it->key << std::endl;
+	std::list<std::string>	sv;
+	findKeyWithBrace(*s, "server", sv);
 }
