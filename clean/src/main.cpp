@@ -92,12 +92,12 @@ int main (int argc, char *argv[])
 	f.close();
 
 	int		server_len = server_list.size();
-	int    content_len, rc, on = 1;
-	int    new_sd = -1;
-	int    end_server = FALSE, compress_array = FALSE;
-	int    close_conn;
-	char   buffer[65535];
-	int    timeout;
+	int		content_len, rc, on = 1;
+	int		new_sd = -1;
+	int		end_server = FALSE, compress_array = FALSE;
+	int		close_conn;
+	char	buffer[65535];
+	int		timeout;
 
 	int    nfds = server_len, current_size = 0, i, j;
 
@@ -171,11 +171,11 @@ int main (int argc, char *argv[])
 					rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 					if (rc < 0)
 					{
-					//	if (errno != EWOULDBLOCK)
-					//	{
-					//		perror("  recv() failed");
-					//		close_conn = TRUE;
-					//	}
+						//	if (errno != EWOULDBLOCK)
+						//	{
+						//		perror("  recv() failed");
+						//		close_conn = TRUE;
+						//	}
 						break;
 					}
 
