@@ -3,6 +3,6 @@
 
 #include <Server.hpp>
 
-void create_socket(cfg::Server &s);
+int create_socket(cfg::Server &s);
 
 #endif

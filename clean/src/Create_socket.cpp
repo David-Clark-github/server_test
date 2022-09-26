@@ -4,11 +4,13 @@
 #include <string.h>
 #include "Server.hpp"
 
-void create_socket(cfg::Server &s) {
+int	 create_socket(cfg::Server &s) {
     int opt = 1;
     struct sockaddr_in6 addr;
 
 	s.setSocket(socket(AF_INET6, SOCK_STREAM, getprotobyname("tcp")->p_proto));
+	if (s.getSocket() == -1)
+		return (-1);
 
 	setsockopt(s.getSocket(), SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt));
 

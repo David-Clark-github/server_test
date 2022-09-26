@@ -49,14 +49,17 @@ int main (int argc, char *argv[])
 	cfg::Server					s1;
 	cfg::Server					s2;
 	cfg::Server					s3;
+	cfg::Server					s4;
 
 	s1.setListen(8080);
 	s2.setListen(5050);
 	s3.setListen(12345);
+	s4.setListen(8080);
 
 	server_list.push_back(s1);
 	server_list.push_back(s2);
 	server_list.push_back(s3);
+	server_list.push_back(s4);
 
 	struct pollfd fds[server_list.size() * 10];
 	memset(fds, 0, sizeof(fds));
