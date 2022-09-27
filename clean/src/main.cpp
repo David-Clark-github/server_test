@@ -34,7 +34,7 @@ int	check_init_sock(int comp, std::vector<cfg::Server> s, int server_len) {
 }
 
 void	usage(char *str) {
-	printf("Usage:\n%s [fichier de configuration]\n", str);
+	printf("Usage:\n%s configuration_file\n", str);
 	exit(EXIT_FAILURE);
 }
 
@@ -67,13 +67,15 @@ int main (int argc, char *argv[])
 	int	len = 0;
 	for (size_t i = 0; i < server_list.size(); i++) {
 		if (create_socket(server_list[i]) == -1) {
-			printf("error create_socket() index [%lu]\n", i);
+			printf("error create_socket() port [%d]\n", server_list[i].getListen());
 		} else {
 			len++;
+			fds[i].fd = server_list[i].getSocket();
+			fds[i].events = POLLIN;
 		}
-		fds[i].fd = server_list[i].getSocket();
-		fds[i].events = POLLIN;
 	}
+	if (len == 0)
+		return (EXIT_FAILURE);
 
 
 	page_upload.append("HTTP/1.1 200 OK\n");
@@ -94,6 +96,7 @@ int main (int argc, char *argv[])
 			break;
 		data.append(s);
 	}
+
 	ft_itoa_string(data.size(), page_upload);
 	page_upload.append("\n\n");
 	page_upload.append(data);
@@ -152,14 +155,7 @@ int main (int argc, char *argv[])
 				{
 					new_sd = accept(ok_fd, NULL, NULL);
 					if (new_sd < 0)
-					{
-						if (errno != EWOULDBLOCK)
-						{
-							perror("  accept() failed");
-							end_server = TRUE;
-						}
 						break;
-					}
 					ioctl(new_sd, FIONBIO, (char *)&on);
 
 					printf("  New incoming connection - %d\n", new_sd);
@@ -176,22 +172,19 @@ int main (int argc, char *argv[])
 
 				do
 				{
+					printf("len = %d\n", len);
+					printf("i = %d\n", i);
 					rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-					if (rc < 0)
-					{
-						//	if (errno != EWOULDBLOCK)
-						//	{
-						//		perror("  recv() failed");
-						//		close_conn = TRUE;
-						//	}
+					if (rc < 0) {
+						perror("recv() failed");
+						close_conn = TRUE;
 						break;
 					}
 
-					/* Affichage des requêtes clients */
 					printf("\n*******************\n");
 					printf("| Client request: |\n");
-					//printf("*******************\n");
-					printf("*******************\n%s", buffer);
+					printf("*******************\n");
+					//printf("*******************\n%s", buffer);
 
 					t_request_ser	r_s;	
 					std::string client;
@@ -229,13 +222,10 @@ int main (int argc, char *argv[])
 					//rc = send(fds[i].fd, buffer, content_len, 0);
 					if (rc < 0)
 					{
-						perror("  send() failed");
+						perror("send() failed");
 						close_conn = TRUE;
 						break;
 					}
-					//str = "\n";
-					//send(fds[i].fd, str, strcontent_len(str), 0);
-
 				} while(TRUE);
 
 				if (close_conn)
