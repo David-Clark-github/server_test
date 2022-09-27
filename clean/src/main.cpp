@@ -64,16 +64,13 @@ int main (int argc, char *argv[])
 	struct pollfd fds[server_list.size() * 10];
 	memset(fds, 0, sizeof(fds));
 
-
-	if (server_list.size() > 1) {
-		int	a, b;
-
-		std::vector<cfg::Server>::iterator ita= server_list.begin();
-		std::vector<cfg::Server>::iterator itb = server_list.begin() + 1;
-	}
-
+	int	len = 0;
 	for (size_t i = 0; i < server_list.size(); i++) {
-		create_socket(server_list[i]);
+		if (create_socket(server_list[i]) == -1) {
+			printf("error create_socket() index [%lu]\n", i);
+		} else {
+			len++;
+		}
 		fds[i].fd = server_list[i].getSocket();
 		fds[i].events = POLLIN;
 	}
