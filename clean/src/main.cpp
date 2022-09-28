@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <cstring>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -19,6 +20,9 @@
 #include "ft_itoa_string.hpp"
 #include <vector>
 
+#define SERVER_PORT1	12345
+#define SERVER_PORT2	8080
+
 #define TRUE             1
 #define FALSE            0
 
@@ -31,7 +35,7 @@ int	check_init_sock(int comp, std::vector<cfg::Server> s, int server_len) {
 }
 
 void	usage(char *str) {
-	printf("Usage:\n%s <configuration_file>\n", str);
+	printf("Usage:\n%s [fichier de configuration]\n", str);
 	exit(EXIT_FAILURE);
 }
 
@@ -59,20 +63,18 @@ int main (int argc, char *argv[])
 	server_list.push_back(s4);
 
 	struct pollfd fds[server_list.size() * 10];
-	memset(fds, 0, sizeof(fds));
+	std::memset(fds, 0, sizeof(fds));
 
 	int	len = 0;
 	for (size_t i = 0; i < server_list.size(); i++) {
-		if (create_socket(server_list[i]) == -1) {
-			printf("error create_socket() port [%d]\n", server_list[i].getListen());
-		} else {
+		if (create_socket(server_list[i]) != -1) {
 			len++;
 			fds[i].fd = server_list[i].getSocket();
 			fds[i].events = POLLIN;
 		}
 	}
 	if (len == 0)
-		return (EXIT_FAILURE);
+		return (0);
 
 
 	page_upload.append("HTTP/1.1 200 OK\n");
@@ -93,7 +95,6 @@ int main (int argc, char *argv[])
 			break;
 		data.append(s);
 	}
-
 	ft_itoa_string(data.size(), page_upload);
 	page_upload.append("\n\n");
 	page_upload.append(data);
@@ -105,8 +106,11 @@ int main (int argc, char *argv[])
 	int		end_server = FALSE, compress_array = FALSE;
 	int		close_conn;
 	char	buffer[65535];
+	int		timeout;
 
 	int    nfds = server_len, current_size = 0, i, j;
+
+	timeout = -1;
 
 	do
 	{
@@ -148,8 +152,13 @@ int main (int argc, char *argv[])
 				do
 				{
 					new_sd = accept(ok_fd, NULL, NULL);
-					if (new_sd < 0) {
-						if (errno != EWOUL)
+					if (new_sd < 0)
+					{
+						if (errno != EWOULDBLOCK)
+						{
+							perror("  accept() failed");
+							end_server = TRUE;
+						}
 						break;
 					}
 					ioctl(new_sd, FIONBIO, (char *)&on);
@@ -168,30 +177,28 @@ int main (int argc, char *argv[])
 
 				do
 				{
-					printf("\n*******************\n");
-					printf("| Client request: |\n");
-					printf("*******************\n");
-
-					printf("len = %d\n", len);
-					printf("i = %d\n", i);
 					rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-					if (rc < 0) {
+					if (rc < 0)
+						break;
+
+					if (rc == 0)
+					{
+						printf("Connection closed\n");
+						close_conn = TRUE;
 						break;
 					}
 
-					//printf("*******************\n%s", buffer);
+					/* Affichage des requêtes clients */
+					printf("\n*******************\n");
+					printf("| Client request: |\n");
+					//printf("*******************\n");
+					printf("*******************\n%s", buffer);
 
 					t_request_ser	r_s;	
 					std::string client;
 					client.append(buffer);
 					pars_request(r_s, client);
 
-					if (rc == 0)
-					{
-						printf("  Connection closed\n");
-						close_conn = TRUE;
-						break;
-					}
 					content_len = rc;
 
 					printf("*******************\n");
@@ -212,8 +219,6 @@ int main (int argc, char *argv[])
 					//      CCCCC    GGGGG    IIIII
 					//
 
-					// SEND(FDS[I].FD, STRING_CGI.C_STR(), STRING_CGI.SIZE(), 0);
-
 					//rc = send(fds[i].fd, buffer, content_len, 0);
 					if (rc < 0)
 					{
@@ -221,6 +226,9 @@ int main (int argc, char *argv[])
 						close_conn = TRUE;
 						break;
 					}
+					//str = "\n";
+					//send(fds[i].fd, str, strcontent_len(str), 0);
+
 				} while(TRUE);
 
 				if (close_conn)
