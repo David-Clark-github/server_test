@@ -19,9 +19,6 @@
 #include "ft_itoa_string.hpp"
 #include <vector>
 
-#define SERVER_PORT1	12345
-#define SERVER_PORT2	8080
-
 #define TRUE             1
 #define FALSE            0
 
@@ -34,7 +31,7 @@ int	check_init_sock(int comp, std::vector<cfg::Server> s, int server_len) {
 }
 
 void	usage(char *str) {
-	printf("Usage:\n%s configuration_file\n", str);
+	printf("Usage:\n%s <configuration_file>\n", str);
 	exit(EXIT_FAILURE);
 }
 
@@ -102,17 +99,14 @@ int main (int argc, char *argv[])
 	page_upload.append(data);
 	f.close();
 
-	int		server_len = server_list.size();
+	int		server_len = len;
 	int		content_len, rc, on = 1;
 	int		new_sd = -1;
 	int		end_server = FALSE, compress_array = FALSE;
 	int		close_conn;
 	char	buffer[65535];
-	int		timeout;
 
 	int    nfds = server_len, current_size = 0, i, j;
-
-	timeout = -1;
 
 	do
 	{
@@ -154,8 +148,10 @@ int main (int argc, char *argv[])
 				do
 				{
 					new_sd = accept(ok_fd, NULL, NULL);
-					if (new_sd < 0)
+					if (new_sd < 0) {
+						if (errno != EWOUL)
 						break;
+					}
 					ioctl(new_sd, FIONBIO, (char *)&on);
 
 					printf("  New incoming connection - %d\n", new_sd);
@@ -172,18 +168,17 @@ int main (int argc, char *argv[])
 
 				do
 				{
+					printf("\n*******************\n");
+					printf("| Client request: |\n");
+					printf("*******************\n");
+
 					printf("len = %d\n", len);
 					printf("i = %d\n", i);
 					rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 					if (rc < 0) {
-						perror("recv() failed");
-						close_conn = TRUE;
 						break;
 					}
 
-					printf("\n*******************\n");
-					printf("| Client request: |\n");
-					printf("*******************\n");
 					//printf("*******************\n%s", buffer);
 
 					t_request_ser	r_s;	
